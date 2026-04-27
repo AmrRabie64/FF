@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مساعد عمرو ربيع</title>
+    <title>Odoo Tracker - عمرو ربيع</title>
     <style>
         body { background: #0D1117; color: white; font-family: sans-serif; padding: 20px; display: flex; justify-content: center; }
         .box { background: #161B22; border: 1px solid #30363D; padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h2 { color: #2EA043; margin-top: 0; text-align: center; }
-        #chat { height: 300px; overflow-y: auto; margin-bottom: 15px; text-align: right; border-bottom: 1px solid #30363D; padding-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+        h2 { color: #2EA043; text-align: center; margin-bottom: 20px; }
+        #chat { height: 300px; overflow-y: auto; margin-bottom: 15px; border-bottom: 1px solid #30363D; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
         .input-group { display: flex; gap: 10px; }
         input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #30363D; background: #0D1117; color: white; outline: none; }
         button { background: #2EA043; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .user-msg { color: #8B949E; font-size: 0.9em; }
-        .ai-msg { color: #2EA043; font-weight: bold; background: #1c2333; padding: 8px; border-radius: 5px; }
-        .reset-btn { background: none; color: #8B949E; font-size: 11px; margin-top: 15px; text-decoration: underline; border: none; cursor: pointer; width: 100%; }
+        .user { color: #8B949E; text-align: left; font-size: 0.9em; }
+        .ai { color: #2EA043; font-weight: bold; background: #1c2333; padding: 10px; border-radius: 8px; align-self: flex-start; }
+        .reset-btn { background: none; color: #8B949E; font-size: 11px; margin-top: 20px; text-decoration: underline; border: none; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
@@ -22,16 +22,16 @@
         <h2>🎯 مساعد عمرو ربيع</h2>
         <div id="chat"></div>
         <div class="input-group">
-            <input type="text" id="userInput" placeholder="اكتب عملت إيه دلوقتي...">
+            <input type="text" id="userInput" placeholder="اكتب عملت إيه في Odoo دلوقتي...">
             <button onclick="sendMsg()">إرسال</button>
         </div>
-        <button class="reset-btn" onclick="clearKey()">تغيير الـ API Key</button>
+        <button class="reset-btn" onclick="clearKey()">تغيير الـ API Key (مسح المفتاح المخزن)</button>
     </div>
 
     <script>
         function clearKey() {
             localStorage.removeItem('MY_API_KEY');
-            alert("تم مسح المفتاح. الصفحة ستعيد التحميل لطلب المفتاح الجديد.");
+            alert("تم مسح المفتاح. الصفحة ستعيد التحميل.");
             location.reload();
         }
 
@@ -43,36 +43,39 @@
 
             let apiKey = localStorage.getItem('MY_API_KEY');
             if (!apiKey) {
-                apiKey = prompt("من فضلك أدخل الـ API Key الخاص بك:");
+                apiKey = prompt("دخل الـ API Key من Google AI Studio:");
                 if(apiKey) localStorage.setItem('MY_API_KEY', apiKey);
                 else return;
             }
 
-            chat.innerHTML += `<div class="user-msg">👤: ${text}</div>`;
+            chat.innerHTML += `<div class="user">👤: ${text}</div>`;
             input.value = '';
 
             try {
-                // تعديل الرابط ليكون v1 بدلاً من v1beta لضمان الاستقرار
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`;
+                // استخدمنا هنا الرابط المباشر للموديل gemini-1.5-flash مع نسخة v1beta
+                // وتأكدنا من كتابة الموديل بشكل كامل
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: "أنت مساعد ذكي لعمرو ربيع، مستشار Odoo. رد باختصار باللهجة المصرية على ما فعله: " + text }] }]
+                        contents: [{ parts: [{ text: "أنت مساعد عمرو ربيع، مستشار Odoo. رد باختصار جداً باللهجة المصرية على: " + text }] }]
                     })
                 });
 
                 const data = await response.json();
                 
                 if(data.error) {
-                    chat.innerHTML += `<div style="color:red">❌ خطأ من جوجل: ${data.error.message}</div>`;
+                    chat.innerHTML += `<div style="color:#ff4444">❌ خطأ: ${data.error.message}</div>`;
+                    // لو المفتاح فيه مشكلة، هنمسحه عشان يطلبه تاني
+                    if(data.error.status === "INVALID_ARGUMENT") localStorage.removeItem('MY_API_KEY');
                 } else {
                     const reply = data.candidates[0].content.parts[0].text;
-                    chat.innerHTML += `<div class="ai-msg">🤖: ${reply}</div>`;
+                    chat.innerHTML += `<div class="ai">🤖: ${reply}</div>`;
                 }
             } catch (e) {
-                chat.innerHTML += `<div style="color:red">❌ مشكلة في الشبكة، تأكد من الاتصال.</div>`;
+                chat.innerHTML += `<div style="color:#ff4444">❌ فشل الاتصال بالسيرفر.</div>`;
             }
             chat.scrollTop = chat.scrollHeight;
         }
