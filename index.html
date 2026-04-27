@@ -1,82 +1,195 @@
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Odoo Tracker - عمرو ربيع</title>
-    <style>
-        body { background: #0D1117; color: white; font-family: sans-serif; padding: 20px; display: flex; justify-content: center; }
-        .box { background: #161B22; border: 1px solid #30363D; padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h2 { color: #2EA043; text-align: center; margin-bottom: 20px; }
-        #chat { height: 300px; overflow-y: auto; margin-bottom: 15px; border-bottom: 1px solid #30363D; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
-        .input-group { display: flex; gap: 10px; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #30363D; background: #0D1117; color: white; outline: none; }
-        button { background: #2EA043; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .user { color: #8B949E; text-align: left; font-size: 0.9em; }
-        .ai { color: #2EA043; font-weight: bold; background: #1c2333; padding: 10px; border-radius: 8px; align-self: flex-start; }
-        .reset-btn { background: none; color: #8B949E; font-size: 11px; margin-top: 20px; text-decoration: underline; border: none; cursor: pointer; width: 100%; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مساعد التراكر — عمرو ربيع</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D1117; --surface:#161B22; --surface2:#1C2333; --border:#30363D;
+  --accent:#2EA043; --accent2:#388BFD; --text:#E6EDF3; --text2:#8B949E;
+  --radius:12px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min-height:100vh;padding:16px; max-width: 600px; margin: auto;}
+.header{text-align:center;margin-bottom:20px;}
+.header h1{font-size:22px;font-weight:800;background:linear-gradient(135deg,#2EA043,#388BFD);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;}
+.header p{font-size:12px;color:var(--text2)}
+.chat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;height:300px;overflow-y:auto;margin-bottom:12px;display:flex;flex-direction:column;gap:10px;}
+.msg{display:flex;gap:8px;align-items:flex-start}
+.msg.user{flex-direction:row-reverse}
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.avatar.ai{background:linear-gradient(135deg,#2EA043,#388BFD)}
+.avatar.user{background:var(--surface2);border:1px solid var(--border)}
+.bubble{max-width:80%;padding:10px 13px;border-radius:12px;font-size:13px;line-height:1.6;}
+.msg.ai .bubble{background:var(--surface2);border:1px solid var(--border);border-top-right-radius:4px;}
+.msg.user .bubble{background:linear-gradient(135deg,#1a3a2a,#0d2a1a);border:1px solid #2EA04340;border-top-left-radius:4px;}
+.input-area{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;}
+.input-row{display:flex;gap:8px;align-items:flex-end}
+textarea{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:14px;padding:10px 12px;resize:none;min-height:48px;outline:none;direction:rtl;}
+.send-btn{width:48px;height:48px;background:linear-gradient(135deg,#2EA043,#1a7a2a);border:none;border-radius:10px;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.chip{padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--text2);cursor:pointer;font-family:'Tajawal',sans-serif;transition:all .15s;}
+.log-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-top:12px;}
+.log-panel h3{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.log-list{display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto}
+.log-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;}
+.log-cat{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;flex-shrink:0;}
+.log-detail{flex:1;color:var(--text)}
+.log-time{color:var(--text2);font-size:11px;flex-shrink:0}
+.reset-btn { background: none; color: #8B949E; font-size: 11px; margin-top: 10px; text-decoration: underline; border: none; cursor: pointer; width: 100%; text-align: center; }
+</style>
 </head>
 <body>
-    <div class="box">
-        <h2>🎯 مساعد عمرو ربيع</h2>
-        <div id="chat"></div>
-        <div class="input-group">
-            <input type="text" id="userInput" placeholder="اكتب عملت إيه في Odoo دلوقتي...">
-            <button onclick="sendMsg()">إرسال</button>
-        </div>
-        <button class="reset-btn" onclick="clearKey()">تغيير الـ API Key (مسح المفتاح المخزن)</button>
-    </div>
 
-    <script>
-        function clearKey() {
-            localStorage.removeItem('MY_API_KEY');
-            alert("تم مسح المفتاح. الصفحة ستعيد التحميل.");
-            location.reload();
-        }
+<div class="header">
+  <h1>🎯 مساعد التراكر — عمرو</h1>
+  <p>سجل مهامك كـ Odoo Implementer وأنا هنظمها لك</p>
+</div>
 
-        async function sendMsg() {
-            const input = document.getElementById('userInput');
-            const chat = document.getElementById('chat');
-            const text = input.value.trim();
-            if(!text) return;
+<div class="chat" id="chat">
+  <div class="msg ai">
+    <div class="avatar ai">🤖</div>
+    <div class="bubble">أهلاً يا هندسة! جاهز أسجل يومك، اكتبلي عملت إيه دلوقتي وهنظمهولك في الجدول تحت.</div>
+  </div>
+</div>
 
-            let apiKey = localStorage.getItem('MY_API_KEY');
-            if (!apiKey) {
-                apiKey = prompt("دخل الـ API Key من Google AI Studio:");
-                if(apiKey) localStorage.setItem('MY_API_KEY', apiKey);
-                else return;
-            }
+<div class="input-area">
+  <div class="input-row">
+    <button class="send-btn" id="sendBtn" onclick="sendMsg()">↑</button>
+    <textarea id="inp" placeholder='مثال: خلصت شغل في المستخلصات الساعة 4'></textarea>
+  </div>
+  <div class="chips">
+    <span class="chip" onclick="quick('صليت الفجر دلوقتي')">🕌 فجر</span>
+    <span class="chip" onclick="quick('بدأت شغل Full-Time دلوقتي')">💼 شغل Odoo</span>
+    <span class="chip" onclick="quick('بدأت Part-Time دلوقتي')">🛠️ Part-Time</span>
+    <span class="chip" onclick="quick('شغال على الـ User Manual دلوقتي')">📖 دليل المستخدم</span>
+    <span class="chip" onclick="quick('ذاكرت Odoo ساعة')">🎓 مذاكرة Odoo</span>
+    <span class="chip" onclick="quick('رحت نمت دلوقتي')">😴 نوم</span>
+  </div>
+</div>
 
-            chat.innerHTML += `<div class="user">👤: ${text}</div>`;
-            input.value = '';
+<div class="log-panel">
+  <h3>📋 السجل اليومي <span id="logDate" style="color:var(--accent);margin-right:auto"></span></h3>
+  <div class="log-list" id="logList">
+    <div style="color:var(--text2);font-size:12px;text-align:center;padding:16px">لسه مفيش تسجيلات — ابدأ اكتب فوق ⬆️</div>
+  </div>
+</div>
+<button class="reset-btn" onclick="localStorage.removeItem('MY_API_KEY'); location.reload();">تغيير الـ API Key</button>
 
-            try {
-                // استخدمنا هنا الرابط المباشر للموديل gemini-1.5-flash مع نسخة v1beta
-                // وتأكدنا من كتابة الموديل بشكل كامل
-const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: "أنت مساعد عمرو ربيع، مستشار Odoo. رد باختصار جداً باللهجة المصرية على: " + text }] }]
-                    })
-                });
+<script>
+const log = [];
+const today = new Date();
+document.getElementById('logDate').textContent = today.toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'});
 
-                const data = await response.json();
-                
-                if(data.error) {
-                    chat.innerHTML += `<div style="color:#ff4444">❌ خطأ: ${data.error.message}</div>`;
-                    // لو المفتاح فيه مشكلة، هنمسحه عشان يطلبه تاني
-                    if(data.error.status === "INVALID_ARGUMENT") localStorage.removeItem('MY_API_KEY');
-                } else {
-                    const reply = data.candidates[0].content.parts[0].text;
-                    chat.innerHTML += `<div class="ai">🤖: ${reply}</div>`;
-                }
-            } catch (e) {
-                chat.innerHTML += `<div style="color:#ff4444">❌ فشل الاتصال بالسيرفر.</div>`;
-            }
-            chat.scrollTop = chat.scrollHeight;
-        }
-    </script>
+const CAT = {
+  pray:  {label:'صلاة',    bg:'#1D9E7520', color:'#1D9E75', emoji:'🕌'},
+  work:  {label:'Full-Time',bg:'#2E5FA320', color:'#388BFD', emoji:'💼'},
+  part:  {label:'Part-Time',bg:'#ED7D3120', color:'#ED7D31', emoji:'🛠️'},
+  study: {label:'Odoo',    bg:'#7F77DD20', color:'#7F77DD', emoji:'🎓'},
+  eng:   {label:'إنجليزي', bg:'#63992220', color:'#8BC34A', emoji:'🇬🇧'},
+  food:  {label:'أكل',     bg:'#D4537E20', color:'#D4537E', emoji:'🍽️'},
+  sleep: {label:'نوم',     bg:'#55555530', color:'#aaa',    emoji:'😴'},
+  other: {label:'أخرى',   bg:'#ffffff10', color:'#8B949E', emoji:'📌'},
+};
+
+function nowHHMM() {
+  const n = new Date();
+  return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+}
+
+function addMsg(role, html) {
+  const chat = document.getElementById('chat');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `<div class="avatar ${role}">${role==='ai'?'🤖':'👤'}</div><div class="bubble">${html}</div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function renderLog() {
+  const ll = document.getElementById('logList');
+  ll.innerHTML = log.map(e => {
+    const cat = CAT[e.cat] || CAT.other;
+    return `<div class="log-item" style="background:${cat.bg}">
+      <span style="font-size:16px">${cat.emoji}</span>
+      <span class="log-cat" style="background:${cat.color}20;color:${cat.color}">${cat.label}</span>
+      <span class="log-detail">${e.detail}</span>
+      <span class="log-time">${e.time}</span>
+    </div>`;
+  }).join('');
+}
+
+function quick(txt) { document.getElementById('inp').value = txt; sendMsg(); }
+
+async function sendMsg() {
+  const inp = document.getElementById('inp');
+  const txt = inp.value.trim();
+  if(!txt) return;
+
+  let apiKey = localStorage.getItem('MY_API_KEY');
+  if (!apiKey) {
+      apiKey = prompt("من فضلك أدخل Google API Key:");
+      if(apiKey) localStorage.setItem('MY_API_KEY', apiKey);
+      else return;
+  }
+
+  inp.value = ''; document.getElementById('sendBtn').disabled = true;
+  addMsg('user', txt);
+
+  const systemPrompt = `أنت مساعد ذكي لتتبع جدول عمرو ربيع (Odoo Implementer). 
+مهمتك استخراج البيانات من كلامه بصيغة JSON فقط.
+الصيغة المطلوبة:
+{
+  "entries": [
+    {"cat": "pray|work|part|study|eng|food|sleep|other", "detail": "وصف قصير للمهمة", "start": "HH:MM", "end": "HH:MM أو null"}
+  ],
+  "reply": "رد قصير ودي وداعم باللهجة المصرية"
+}
+لو قال "دلوقتي" استخدم الوقت: ${nowHHMM()}`;
+
+  try {
+    // الرابط اللي نجح معاك
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: systemPrompt + "\n\nكلام عمرو: " + txt }] }],
+        // الخاصية دي بتجبر الموديل يرد بـ JSON فقط عشان السجل يشتغل
+        generationConfig: { response_mime_type: "application/json" }
+      })
+    });
+
+    const data = await res.json();
+    
+    if(data.error) {
+       addMsg('ai', `خطأ: ${data.error.message}`);
+       if(data.error.code === 400) localStorage.removeItem('MY_API_KEY');
+    } else {
+       const parsed = JSON.parse(data.candidates[0].content.parts[0].text);
+       
+       if(parsed.entries && parsed.entries.length > 0) {
+           parsed.entries.forEach(e => {
+               log.unshift({
+                   cat: e.cat, 
+                   detail: e.detail, 
+                   time: e.start ? (e.end ? `${e.start}–${e.end}` : e.start) : nowHHMM()
+               });
+           });
+           renderLog();
+       }
+       addMsg('ai', parsed.reply || "تم التسجيل في الجدول يا هندسة.");
+    }
+  } catch(e) {
+    addMsg('ai', "حصلت مشكلة في الاتصال أو تحليل البيانات.");
+    console.error(e);
+  }
+
+  document.getElementById('sendBtn').disabled = false;
+}
+</script>
 </body>
 </html>
