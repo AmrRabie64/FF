@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>مساعد التراكر — عمرو ربيع</title>
+<title>مساعد التراكر — عمرو</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -73,10 +73,10 @@ textarea{flex:1;background:var(--surface2);border:1px solid var(--border);border
 <div class="log-panel">
   <h3>📋 السجل اليومي <span id="logDate" style="color:var(--accent);margin-right:auto"></span></h3>
   <div class="log-list" id="logList">
-    <div style="color:var(--text2);font-size:12px;text-align:center;padding:16px">لسه مفيش تسجيلات — ابدأ اكتب فوق ⬆️</div>
+    <div style="color:var(--text2);font-size:12px;text-align:center;padding:16px" id="emptyLog">لسه مفيش تسجيلات — ابدأ اكتب فوق ⬆️</div>
   </div>
 </div>
-<button class="reset-btn" onclick="localStorage.removeItem('MY_API_KEY'); location.reload();">تغيير الـ API Key</button>
+<button class="reset-btn" onclick="clearKey()">تغيير الـ API Key (مسح المفتاح المخزن)</button>
 
 <script>
 const log = [];
@@ -110,18 +110,25 @@ function addMsg(role, html) {
 
 function renderLog() {
   const ll = document.getElementById('logList');
-  ll.innerHTML = log.map(e => {
-    const cat = CAT[e.cat] || CAT.other;
-    return `<div class="log-item" style="background:${cat.bg}">
-      <span style="font-size:16px">${cat.emoji}</span>
-      <span class="log-cat" style="background:${cat.color}20;color:${cat.color}">${cat.label}</span>
-      <span class="log-detail">${e.detail}</span>
-      <span class="log-time">${e.time}</span>
-    </div>`;
-  }).join('');
+  if(log.length > 0) {
+      ll.innerHTML = log.map(e => {
+        const cat = CAT[e.cat] || CAT.other;
+        return `<div class="log-item" style="background:${cat.bg}">
+          <span style="font-size:16px">${cat.emoji}</span>
+          <span class="log-cat" style="background:${cat.color}20;color:${cat.color}">${cat.label}</span>
+          <span class="log-detail">${e.detail}</span>
+          <span class="log-time">${e.time}</span>
+        </div>`;
+      }).join('');
+  }
 }
 
 function quick(txt) { document.getElementById('inp').value = txt; sendMsg(); }
+
+function clearKey() {
+    localStorage.removeItem('MY_API_KEY');
+    location.reload();
+}
 
 async function sendMsg() {
   const inp = document.getElementById('inp');
@@ -130,49 +137,63 @@ async function sendMsg() {
 
   let apiKey = localStorage.getItem('MY_API_KEY');
   if (!apiKey) {
-      apiKey = prompt("من فضلك أدخل Google API Key:");
-      if(apiKey) localStorage.setItem('MY_API_KEY', apiKey);
-      else return;
+      apiKey = prompt("من فضلك أدخل Google API Key (يجب أن يبدأ بـ AIza):");
+      if(apiKey) {
+          apiKey = apiKey.trim(); 
+          if (!apiKey.startsWith("AIza")) {
+              alert("❌ المفتاح غير صحيح، يجب أن يبدأ بـ AIza.");
+              return;
+          }
+          localStorage.setItem('MY_API_KEY', apiKey);
+      } else return;
   }
 
   inp.value = ''; document.getElementById('sendBtn').disabled = true;
   addMsg('user', txt);
 
-  const systemPrompt = `أنت مساعد ذكي لتتبع جدول عمرو ربيع (Odoo Implementer). 
-مهمتك استخراج البيانات من كلامه بصيغة JSON فقط.
-الصيغة المطلوبة:
+  // بناء الذاكرة لربط الأحداث
+  let historyText = "";
+  if (log.length > 0) {
+      historyText = "\nسجل المهام حتى الآن للمرجعية:\n" + log.slice(0, 3).map(e => `- ${e.cat}: ${e.detail}`).join("\n");
+  }
+
+  const systemPrompt = `أنت مساعد ذكي لعمرو ربيع (Odoo Implementer). 
+مهمتك استخراج البيانات من رسالته الجديدة.
+لا تكتب أي نصوص عادية، يجب أن يكون الرد بصيغة JSON فقط كما يلي:
 {
   "entries": [
-    {"cat": "pray|work|part|study|eng|food|sleep|other", "detail": "وصف قصير للمهمة", "start": "HH:MM", "end": "HH:MM أو null"}
+    {"cat": "pray|work|part|study|eng|food|sleep|other", "detail": "وصف المهمة", "start": "HH:MM", "end": "HH:MM أو null"}
   ],
-  "reply": "رد قصير ودي وداعم باللهجة المصرية"
+  "reply": "رد قصير وداعم باللهجة المصرية مبني على سياق كلامه"
 }
-لو قال "دلوقتي" استخدم الوقت: ${nowHHMM()}`;
+الوقت الآن: ${nowHHMM()}
+${historyText}`;
 
   try {
-    // الرابط اللي نجح معاك
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
     
     const res = await fetch(url, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
-        contents: [{ parts: [{ text: systemPrompt + "\n\nكلام عمرو: " + txt }] }],
-        // الخاصية دي بتجبر الموديل يرد بـ JSON فقط عشان السجل يشتغل
-        generationConfig: { response_mime_type: "application/json" }
+        contents: [{ parts: [{ text: systemPrompt + "\n\nرسالة عمرو الجديدة: " + txt }] }],
+        generationConfig: { responseMimeType: "application/json" } 
       })
     });
 
     const data = await res.json();
     
     if(data.error) {
-       addMsg('ai', `خطأ: ${data.error.message}`);
-       if(data.error.code === 400) localStorage.removeItem('MY_API_KEY');
+       addMsg('ai', `❌ خطأ: ${data.error.message}`);
+       if(data.error.code === 400 || data.error.status === "INVALID_ARGUMENT") {
+           localStorage.removeItem('MY_API_KEY');
+           alert("المفتاح غير صالح أو منتهي. تم مسحه، يرجى المحاولة مرة أخرى وإدخال مفتاح جديد.");
+       }
     } else {
        const parsed = JSON.parse(data.candidates[0].content.parts[0].text);
        
        if(parsed.entries && parsed.entries.length > 0) {
-           parsed.entries.forEach(e => {
+           parsed.entries.reverse().forEach(e => {
                log.unshift({
                    cat: e.cat, 
                    detail: e.detail, 
@@ -181,10 +202,10 @@ async function sendMsg() {
            });
            renderLog();
        }
-       addMsg('ai', parsed.reply || "تم التسجيل في الجدول يا هندسة.");
+       addMsg('ai', parsed.reply || "سجلتهالك يا هندسة.");
     }
   } catch(e) {
-    addMsg('ai', "حصلت مشكلة في الاتصال أو تحليل البيانات.");
+    addMsg('ai', "حصلت مشكلة في الاتصال، جرب تاني.");
     console.error(e);
   }
 
