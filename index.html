@@ -25,13 +25,13 @@
             <input type="text" id="userInput" placeholder="اكتب عملت إيه دلوقتي...">
             <button onclick="sendMsg()">إرسال</button>
         </div>
-        <button class="reset-btn" onclick="clearKey()">تغيير الـ API Key (مسح المفتاح المخزن)</button>
+        <button class="reset-btn" onclick="clearKey()">تغيير الـ API Key</button>
     </div>
 
     <script>
         function clearKey() {
             localStorage.removeItem('MY_API_KEY');
-            alert("تم مسح المفتاح. الصفحة هتعمل ريفريش واكتب المفتاح الجديد.");
+            alert("تم مسح المفتاح. الصفحة ستعيد التحميل لطلب المفتاح الجديد.");
             location.reload();
         }
 
@@ -43,43 +43,36 @@
 
             let apiKey = localStorage.getItem('MY_API_KEY');
             if (!apiKey) {
-                apiKey = prompt("من فضلك أدخل الـ API Key الجديد:");
-                if(apiKey) {
-                    localStorage.setItem('MY_API_KEY', apiKey);
-                } else return;
+                apiKey = prompt("من فضلك أدخل الـ API Key الخاص بك:");
+                if(apiKey) localStorage.setItem('MY_API_KEY', apiKey);
+                else return;
             }
 
             chat.innerHTML += `<div class="user-msg">👤: ${text}</div>`;
             input.value = '';
 
             try {
-                // الرابط ده هو الأصح والمحدث
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                // تعديل الرابط ليكون v1 بدلاً من v1beta لضمان الاستقرار
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: "أنت مساعد عمرو ربيع، مستشار Odoo. رد باختصار باللهجة المصرية على: " + text }] }]
+                        contents: [{ parts: [{ text: "أنت مساعد ذكي لعمرو ربيع، مستشار Odoo. رد باختصار باللهجة المصرية على ما فعله: " + text }] }]
                     })
                 });
 
                 const data = await response.json();
                 
                 if(data.error) {
-                    // لو المفتاح غلط، هيمسحه عشان يطلب واحد جديد المرة الجاية
-                    if(data.error.code === 400 || data.error.status === "INVALID_ARGUMENT") {
-                        localStorage.removeItem('MY_API_KEY');
-                        chat.innerHTML += `<div style="color:red">❌ المفتاح غلط أو منتهي. تم مسحه، جرب تبعت تاني وهيسألك عن المفتاح الجديد.</div>`;
-                    } else {
-                        chat.innerHTML += `<div style="color:red">❌ خطأ: ${data.error.message}</div>`;
-                    }
+                    chat.innerHTML += `<div style="color:red">❌ خطأ من جوجل: ${data.error.message}</div>`;
                 } else {
                     const reply = data.candidates[0].content.parts[0].text;
                     chat.innerHTML += `<div class="ai-msg">🤖: ${reply}</div>`;
                 }
             } catch (e) {
-                chat.innerHTML += `<div style="color:red">❌ مشكلة في الشبكة.</div>`;
+                chat.innerHTML += `<div style="color:red">❌ مشكلة في الشبكة، تأكد من الاتصال.</div>`;
             }
             chat.scrollTop = chat.scrollHeight;
         }
