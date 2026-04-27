@@ -7,14 +7,14 @@
     <style>
         body { background: #0D1117; color: white; font-family: sans-serif; padding: 20px; display: flex; justify-content: center; }
         .box { background: #161B22; border: 1px solid #30363D; padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h2 { color: #2EA043; margin-top: 0; }
+        h2 { color: #2EA043; margin-top: 0; text-align: center; }
         #chat { height: 300px; overflow-y: auto; margin-bottom: 15px; text-align: right; border-bottom: 1px solid #30363D; padding-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
         .input-group { display: flex; gap: 10px; }
         input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #30363D; background: #0D1117; color: white; outline: none; }
         button { background: #2EA043; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #2c974b; }
         .user-msg { color: #8B949E; font-size: 0.9em; }
         .ai-msg { color: #2EA043; font-weight: bold; background: #1c2333; padding: 8px; border-radius: 5px; }
+        .reset-btn { background: none; color: #8B949E; font-size: 11px; margin-top: 15px; text-decoration: underline; border: none; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
@@ -25,10 +25,16 @@
             <input type="text" id="userInput" placeholder="اكتب عملت إيه دلوقتي...">
             <button onclick="sendMsg()">إرسال</button>
         </div>
-        <button onclick="localStorage.removeItem('MY_API_KEY'); location.reload();" style="background:none; color:#8B949E; font-size:11px; margin-top:15px; text-decoration:underline;">تغيير الـ API Key</button>
+        <button class="reset-btn" onclick="clearKey()">تغيير الـ API Key (مسح المفتاح المخزن)</button>
     </div>
 
     <script>
+        function clearKey() {
+            localStorage.removeItem('MY_API_KEY');
+            alert("تم مسح المفتاح. الصفحة هتعمل ريفريش واكتب المفتاح الجديد.");
+            location.reload();
+        }
+
         async function sendMsg() {
             const input = document.getElementById('userInput');
             const chat = document.getElementById('chat');
@@ -37,37 +43,43 @@
 
             let apiKey = localStorage.getItem('MY_API_KEY');
             if (!apiKey) {
-                apiKey = prompt("من فضلك أدخل الـ API Key الخاص بـ Google AI Studio:");
-                if(apiKey) localStorage.setItem('MY_API_KEY', apiKey);
-                else return;
+                apiKey = prompt("من فضلك أدخل الـ API Key الجديد:");
+                if(apiKey) {
+                    localStorage.setItem('MY_API_KEY', apiKey);
+                } else return;
             }
 
             chat.innerHTML += `<div class="user-msg">👤: ${text}</div>`;
             input.value = '';
-            chat.scrollTop = chat.scrollHeight;
 
             try {
-                // الرابط المحدث والمستقر لـ Gemini 1.5 Flash
+                // الرابط ده هو الأصح والمحدث
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: "أنت مساعد عمرو ربيع، مستشار Odoo. رد باختصار باللهجة المصرية على ما فعله: " + text }] }]
+                        contents: [{ parts: [{ text: "أنت مساعد عمرو ربيع، مستشار Odoo. رد باختصار باللهجة المصرية على: " + text }] }]
                     })
                 });
 
                 const data = await response.json();
                 
                 if(data.error) {
-                    chat.innerHTML += `<div style="color:red">❌ خطأ: ${data.error.message}</div>`;
+                    // لو المفتاح غلط، هيمسحه عشان يطلب واحد جديد المرة الجاية
+                    if(data.error.code === 400 || data.error.status === "INVALID_ARGUMENT") {
+                        localStorage.removeItem('MY_API_KEY');
+                        chat.innerHTML += `<div style="color:red">❌ المفتاح غلط أو منتهي. تم مسحه، جرب تبعت تاني وهيسألك عن المفتاح الجديد.</div>`;
+                    } else {
+                        chat.innerHTML += `<div style="color:red">❌ خطأ: ${data.error.message}</div>`;
+                    }
                 } else {
                     const reply = data.candidates[0].content.parts[0].text;
                     chat.innerHTML += `<div class="ai-msg">🤖: ${reply}</div>`;
                 }
             } catch (e) {
-                chat.innerHTML += `<div style="color:red">❌ حصلت مشكلة في الشبكة.</div>`;
+                chat.innerHTML += `<div style="color:red">❌ مشكلة في الشبكة.</div>`;
             }
             chat.scrollTop = chat.scrollHeight;
         }
